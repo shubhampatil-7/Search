@@ -8,6 +8,8 @@ from collections import defaultdict
 class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
+        self.docmap : dict[int, dict]= {}
+        
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     stemmer = PorterStemmer()
