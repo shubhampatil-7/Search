@@ -2,6 +2,8 @@ from search_utils import load_movies, stop_words, DEFAULT_SEARCH_LIMIT
 import string
 from nltk.stem import PorterStemmer
 from collections import defaultdict
+import pickle
+import os
 
 
 
@@ -9,7 +11,34 @@ class InvertedIndex:
     def __init__(self):
         self.index = defaultdict(set)
         self.docmap : dict[int, dict]= {}
-        
+
+    def __add_document(self, doc_id: int, text: str) -> None:
+        tokens = tokenize(text)
+        for token in tokens:
+            self.index[token].add(doc_id)
+
+    
+    def get_documents(self, term: str):
+        result = self.index[term]
+        result.sort()
+        return result
+    
+    def build(self):
+        movies = load_movies()
+        for movie in movies:
+            self.__add_document(movie["id"], movie['title'] +" " +  movie['description'])
+            self.docmap[movie["id"]] = movie
+
+    def save(self):
+        os.makedirs("cache", exist_ok = True)
+        with open("cache/index.pkl", "wb") as f:
+            pickle.dump(self.index, f)
+        with open("cache/docmap.pkl", "wb") as f:
+            pickle.dump(self.docmap, f)
+
+   
+
+
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
     stemmer = PorterStemmer()
