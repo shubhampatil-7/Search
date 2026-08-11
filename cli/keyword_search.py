@@ -1,112 +1,105 @@
-from search_utils import load_movies, stop_words, DEFAULT_SEARCH_LIMIT
-import string
-from nltk.stem import PorterStemmer
-from collections import defaultdict
-import pickle
 import os
+import pickle
+import string
+from collections import defaultdict, Counter
+
+from nltk.stem import PorterStemmer
+
+from search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, STOPWORDS_PATH, load_movies
 
 
 
 class InvertedIndex:
-    def __init__(self):
+    def __init__(self) -> None:
         self.index = defaultdict(set)
-        self.docmap : dict[int, dict]= {}
+        self.docmap: dict[int, dict] = {}
+        self.index_path = os.path.join(CACHE_DIR, "index.pkl")
+        self.docmap_path = os.path.join(CACHE_DIR, "docmap.pkl")
+        self.term_frequencies: dict[int, Counter] = {}
 
-    def __add_document(self, doc_id: int, text: str) -> None:
-        tokens = tokenize(text)
-        for token in tokens:
-            self.index[token].add(doc_id)
-
-    
-    def get_documents(self, term: str):
-        result = self.index[term]
-        result.sort()
-        return result
-    
-    def build(self):
+    def build(self) -> None:
         movies = load_movies()
-        for movie in movies:
-            self.__add_document(movie["id"], movie['title'] +" " +  movie['description'])
-            self.docmap[movie["id"]] = movie
+        for m in movies:
+            doc_id = m["id"]
+            doc_description = f"{m['title']} {m['description']}"
+            self.docmap[doc_id] = m
+            self.__add_document(doc_id, doc_description)
 
-    def save(self):
-        os.makedirs("cache", exist_ok = True)
-        with open("cache/index.pkl", "wb") as f:
+    def save(self) -> None:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(self.index_path, "wb") as f:
             pickle.dump(self.index, f)
-        with open("cache/docmap.pkl", "wb") as f:
+        with open(self.docmap_path, "wb") as f:
             pickle.dump(self.docmap, f)
 
-   
+    def load(self) -> None:
+        with open(self.index_path, "rb") as f:
+            self.index = pickle.load(f)
+        with open(self.docmap_path, "rb") as f:
+            self.docmap = pickle.load(f)
 
+    def get_documents(self, term: str) -> list[int]:
+        doc_ids = self.index.get(term, set())
+        return sorted(list(doc_ids))
+
+    def __add_document(self, doc_id: int, text: str) -> None:
+        tokens = tokenize_text(text)
+        for token in set(tokens):
+            self.index[token].add(doc_id)
+
+
+def build_command() -> None:
+    idx = InvertedIndex()
+    idx.build()
+    idx.save()
 
 
 def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
-    stemmer = PorterStemmer()
-    movies = load_movies()
-    results = [] 
-    stop_words = stop_words_processing()
-
-    for movie in movies:
-        query_tokens = tokenize(query)
-        title_tokens = tokenize(movie["title"])
-        query_tokens = remove_stop_words(query_tokens, stop_words)
-        title_tokens = remove_stop_words(title_tokens, stop_words)
-        query_tokens = stem(query_tokens)
-        movie_tokens = stem(title_tokens)
-
-        if has_matching_tokens(query_tokens, title_tokens):
-            results.append(movie)
-            if len(results)>= limit:
-                break
+    idx = InvertedIndex()
+    idx.load()
+    query_tokens = tokenize_text(query)
+    seen, results = set(), []
+    for query_token in query_tokens:
+        matching_doc_ids = idx.get_documents(query_token)
+        for doc_id in matching_doc_ids:
+            if doc_id in seen:
+                continue
+            # print("TOKEN:", query_token)
+            # print("IDS:", matching_doc_ids)
+            seen.add(doc_id)
+            doc = idx.docmap[doc_id]
+            results.append(doc)
+            if len(results) >= limit:
+                return results
 
     return results
 
-def stem(tokens: list[str]) -> list[str]:
-    """ Stem the tokens using the provided stemmer """
-    stemmer = PorterStemmer()
-    return [stemmer.stem(token) for token in tokens]
 
-def has_matching_tokens(query_tokens: list[str], title_tokens: list[str]) -> bool:
-    """ Check if any token from the query matches tokens in the title """
-    for query_token in query_tokens:
-        for title_token in title_tokens:
-            if query_token in title_token:
-                return True
+def preprocess_text(text: str) -> str:
+    text = text.lower()
+    text = text.translate(str.maketrans("", "", string.punctuation))
+    return text
 
-    return False
 
-def remove_stop_words(tokens: list[str], stop_words_list: set[str]) -> list[str]:
-    """ Remove stop words from the list of tokens """
-    result = []
-    for token in tokens:
-        if token in stop_words_list:
-            continue
-        else:
-            result.append(token)
-    return result
+def load_stopwords() -> list[str]:
+    with open(STOPWORDS_PATH, "r") as f:
+        return [preprocess_text(word) for word in f.read().splitlines()]
 
-def stop_words_processing() -> list[str]:
-    """ Load stop words from the stopwords.txt file """
-    stop_words_list = stop_words()
-    
-    for i in range(len(stop_words_list)):
-        cleaned_word = clean_text(stop_words_list[i])
-        stop_words_list[i] = cleaned_word
-    return stop_words_list
+STOPWORDS = load_stopwords()
 
-def clean_text(query: str) -> str:
-    """ Remove punctuation and convert to lowercase """
-    translation_table = str.maketrans('', '', string.punctuation)
-    return query.translate(translation_table).lower()
-
-def tokenize(text: str) -> list[str]:
-    """ Tokenize the input text into words """
-    text = clean_text(text)
+def tokenize_text(text: str) -> list[str]:
+    text = preprocess_text(text)
     tokens = text.split()
     valid_tokens = []
-
     for token in tokens:
         if token:
             valid_tokens.append(token)
-    return valid_tokens
-
+    filtered_words = []
+    for word in valid_tokens:
+        if word not in STOPWORDS:
+            filtered_words.append(word)
+    stemmer = PorterStemmer()
+    stemmed_words = []
+    for word in filtered_words:
+        stemmed_words.append(stemmer.stem(word))
+    return stemmed_words

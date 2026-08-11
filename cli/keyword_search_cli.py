@@ -1,6 +1,6 @@
 import argparse
 import json
-from keyword_search import search_command, InvertedIndex
+from keyword_search import search_command,build_command, InvertedIndex
 
 
 def main() -> None:
@@ -17,19 +17,20 @@ def main() -> None:
     args = parser.parse_args()
 
     match args.command:
-        case "search":
-            print(f"Searching for: {args.query}")
+        case "search":            
+            print("Searching for:", args.query)
             results = search_command(args.query)
-            for i, movie in enumerate(results, 1):
-                print(f"{i}. {movie['title']}")
-        case "build":
+            for i, res in enumerate(results, 1):
+                print(f"{i}. ({res['id']}) {res['title']}")
+           
             
-            idx = InvertedIndex()
-            idx.build()
-            idx.save()
-
-            docs = sorted(idx.index["merida"])
-            print(f"First document for token 'merida' = {docs[0]}")
+        case "build":
+            print("Building inverted index...")
+            build_command()
+            print("Inverted index built successfully.")   
+            
+            
+            
         case _:
             parser.print_help()
 
