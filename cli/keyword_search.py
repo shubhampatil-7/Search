@@ -64,8 +64,6 @@ def search_command(query: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[dict]:
         for doc_id in matching_doc_ids:
             if doc_id in seen:
                 continue
-            # print("TOKEN:", query_token)
-            # print("IDS:", matching_doc_ids)
             seen.add(doc_id)
             doc = idx.docmap[doc_id]
             results.append(doc)
