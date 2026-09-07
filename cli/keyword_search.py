@@ -6,8 +6,7 @@ from collections import defaultdict, Counter
 
 from nltk.stem import PorterStemmer
 
-from search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, STOPWORDS_PATH, load_movies, BM25_K1, BM25_B
-
+from search_utils import CACHE_DIR, DEFAULT_SEARCH_LIMIT, STOPWORDS_PATH, load_movies, BM25_K1, BM25_B, format_search_result, SearchResult
 
 
 class InvertedIndex:
@@ -20,6 +19,7 @@ class InvertedIndex:
         self.term_frequencies_path = os.path.join(CACHE_DIR, "term_frequencies.pkl")
         self.term_frequencies: dict[int, Counter] = {}
         self.doc_lengths: dict[int, int] = {}
+        
     
     def __get_avg_doc_length(self) -> float:
         if not self.doc_lengths:
@@ -93,6 +93,41 @@ class InvertedIndex:
         df = len(self.index.get(term, set()))
 
         return math.log((N-df + 0.5) / (df + 0.5) + 1)
+    
+    def bm25(self, doc_id: int, term: str) -> float:
+        bm25_tf = self.get_bm25_tf(doc_id, term)
+        bm25_idf = self.get_bm25_idf(term)
+        return bm25_tf * bm25_idf
+
+    def bm25_search(self, query, limit):
+        tokens = tokenize_text(query)
+        doc_scores: dict[int, float] = {}
+        for doc_id in self.docmap:
+            score = 0.0
+            for token in tokens:
+                score += self.bm25(doc_id, token)
+            doc_scores[doc_id] = score
+
+        sorted_docs = sorted(doc_scores.items(), key=lambda x: x[1], reverse=True)
+
+        results: list[SearchResult] = []
+        for doc_id, score in sorted_docs[:limit]:
+            doc = self.docmap[doc_id]
+            formatted_result = format_search_result(doc_id = doc["id"],title=doc["title"],document=doc["description"],score=score)
+            results.append(formatted_result)
+
+        return results
+
+
+
+
+
+def bm25search_command(
+    query: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> list[SearchResult]:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.bm25_search(query, limit)
 
 def tokenize_helper(term:str):
     token = tokenize_text(term)
