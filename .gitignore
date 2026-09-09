@@ -12,6 +12,9 @@ wheels/
 # Virtual environments
 .venv/
 
+# Data
+/data/*
+
 # Local configuration
 .env
 .env.*
