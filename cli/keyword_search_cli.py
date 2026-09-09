@@ -26,6 +26,9 @@ def main() -> None:
     "bm25idf", help="Get BM25 IDF score for a given term")
     bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
 
+    bm25_idf_parser = subparsers.add_parser(
+    "bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
     
 
     bm25_tf_parser = subparsers.add_parser(

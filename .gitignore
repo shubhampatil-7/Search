@@ -5,13 +5,22 @@ build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Virtual environments
-.venv
+.venv/
 
-#data
-/data/*
+# Local configuration
+.env
+.env.*
+!.env.example
 
-#cache
+# OS files
+.DS_Store
+
+# Generated search indexes and caches
 *.pkl
 /cache/*
+.cache/

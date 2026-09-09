@@ -5,7 +5,7 @@
 
 A command-line search engine built with Python.
 
-Currently, the project supports keyword-based search using an **inverted index**. Documents are processed and indexed for fast keyword lookup.
+The project supports keyword-based search using an **inverted index** and semantic-search model verification with Sentence Transformers. Documents are processed and indexed for fast keyword lookup, while semantic search provides the foundation for meaning-based retrieval.
 
 ## Current Features
 
@@ -19,6 +19,7 @@ Currently, the project supports keyword-based search using an **inverted index**
 - TF (Term Frequency) calculation
 - IDF (Inverse Document Frequency) calculation
 - TF-IDF scoring
+- Semantic search model loading with Sentence Transformers
 
 ---
 
@@ -131,6 +132,16 @@ TF-IDF score of 'brave' in document '42': 6.90
 
 ---
 
+### Verify Semantic Search
+Load the Sentence Transformers model used for semantic search:
+```bash
+uv run cli/semantic_search_cli.py verify
+```
+
+This loads the `all-MiniLM-L6-v2` model and prints its configuration. The first run downloads the model. Semantic document ranking is still under development.
+
+---
+
 ## Command Overview
 
 | Command | Description | Example |
@@ -140,6 +151,7 @@ TF-IDF score of 'brave' in document '42': 6.90
 | `tf` | Get term frequency for a document-term pair | `uv run cli/keyword_search_cli.py tf 1 "word"` |
 | `idf` | Get inverse document frequency for a term | `uv run cli/keyword_search_cli.py idf "word"` |
 | `tfidf` | Get TF-IDF score for a document-term pair | `uv run cli/keyword_search_cli.py tfidf 1 "word"` |
+| `verify` | Verify the semantic search model can be loaded | `uv run cli/semantic_search_cli.py verify` |
 
 ---
 
@@ -150,6 +162,7 @@ TF-IDF score of 'brave' in document '42': 6.90
 3. **Caching**: Index is saved using pickle for faster subsequent loads
 4. **Search**: Query terms are processed the same way as documents, then matched against the index
 5. **TF-IDF**: Combines term frequency (how often a term appears in a document) with inverse document frequency (how rare the term is across all documents) to rank relevance
+6. **Semantic Search**: Sentence Transformers loads `all-MiniLM-L6-v2`, which will encode documents and queries for meaning-based similarity search
 
 ---
 
@@ -158,15 +171,16 @@ TF-IDF score of 'brave' in document '42': 6.90
 ```
 search-engine/
 ├── cli/
-│   └── keyword_search_cli.py    # Command-line interface
-├── keyword_search/              # Core search engine module
-│   ├── __init__.py
-│   ├── inverted_index.py        # Inverted index implementation
-│   └── tokenizer.py             # Text preprocessing utilities
+│   ├── keyword_search_cli.py    # Keyword-search command-line interface
+│   ├── semantic_search_cli.py   # Semantic-search command-line interface
+│   ├── keyword_search.py        # Inverted-index search implementation
+│   ├── search_utils.py          # Shared search utilities
+│   └── lib/
+│       └── semantic_search.py   # Sentence Transformers integration
 ├── data/                        # Document collection
-│   └── documents.json           # Source documents
-├── index/                       # Cached index files
-│   └── inverted_index.pkl       # Pickled index
+│   ├── movies.json              # Source documents
+│   └── stopwords.txt            # Stop-word list
+├── cache/                       # Generated index files
 └── README.md
 ```
 
@@ -176,6 +190,7 @@ search-engine/
 
 - **Python** - Core programming language
 - **NLTK** - Natural Language Toolkit for stemming and tokenization
+- **Sentence Transformers** - Embeddings for semantic search
 - **uv** - Fast Python package installer and resolver
 
 ---
@@ -192,6 +207,11 @@ python -c "import nltk; nltk.download('punkt')"
 - Make sure you've built the index first with `build` command
 - Try using more general keywords
 - Check if your documents are in the correct format
+
+### Semantic Search Model Errors
+- Run `uv sync` to install `sentence-transformers`
+- Run `uv run cli/semantic_search_cli.py verify` to check model loading
+- Ensure the first run has internet access so `all-MiniLM-L6-v2` can be downloaded
 
 ### Build Fails
 - Ensure your document collection is in the expected location
@@ -214,7 +234,7 @@ Work in progress. More search and retrieval techniques will be added as the proj
 ## Future Improvements
 
 - [ ] BM25 ranking algorithm
-- [ ] Vector space model with cosine similarity
+- [ ] Semantic document search with embeddings and cosine similarity
 - [ ] Query expansion and spelling correction
 - [ ] Boolean operators (AND, OR, NOT)
 - [ ] Phrase search
