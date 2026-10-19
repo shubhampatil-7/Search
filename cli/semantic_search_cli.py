@@ -1,6 +1,7 @@
 import argparse
-from lib.semantic_search import SemanticSearch, embed_text, verify_embeddings, embed_query_text, semantic_search, chunk_text
-from search_utils import CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP
+from unittest import case
+from lib.semantic_search import SemanticSearch, embed_chunks_command, embed_text, verify_embeddings, embed_query_text, semantic_search, chunk_text, semantic_chunk_text
+from search_utils import DEFAULT_CHUNK_SIZE, DEFAULT_CHUNK_OVERLAP
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Semantic Search CLI")
@@ -24,8 +25,17 @@ def main() -> None:
 
     chunk_parser = subparsers.add_parser("chunk", help="Chunk a doc into smaller chunks")
     chunk_parser.add_argument("text", type=str, help="Text to chunk")
-    chunk_parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE, help="Size of each chunk")
+    chunk_parser.add_argument("--chunk-size", type=int, default=DEFAULT_CHUNK_SIZE, help="Size of each chunk")
     chunk_parser.add_argument("--overlap", type=int, default = DEFAULT_CHUNK_OVERLAP, help="Size of each chunk")
+
+    semantic_chunk_parser = subparsers.add_parser("semantic_chunk", help="Chunk a doc into smaller chunks based on semantic similarity")
+    semantic_chunk_parser.add_argument("text", type=str, help="Text to chunk")
+    semantic_chunk_parser.add_argument("--max-chunk-size", type=int, default=4, help="Maximum size of each chunk")
+    semantic_chunk_parser.add_argument("--overlap", type=int, default=0, help="Size of each chunk")
+
+    subparsers.add_parser("embed_chunks", help="Generate embeddings for chunked documents")
+    
+
 
     args = parser.parse_args()
     
@@ -50,6 +60,11 @@ def main() -> None:
         case "chunk":
             chunk_text(args.text, args.chunk_size, args.overlap)
 
+        case "semantic_chunk":
+            semantic_chunk_text(args.text, args.max_chunk_size, args.overlap)
+        case "embed_chunks":
+            embeddings = embed_chunks_command()
+            print(f"Generated {len(embeddings)} chunked embeddings")
         case _:
             parser.print_help()
 
