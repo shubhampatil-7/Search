@@ -22,9 +22,9 @@ def main() -> None:
     tfidf_parser.add_argument("doc_id", type=int, help="Document ID")
     tfidf_parser.add_argument("term", type=str, help="Term to get TF-IDF for")
     
-    bm25_idf_parser = subparsers.add_parser(
-    "bm25idf", help="Get BM25 IDF score for a given term")
-    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
+    # bm25_idf_parser = subparsers.add_parser(
+    # "bm25idf", help="Get BM25 IDF score for a given term")
+    # bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
 
     bm25_idf_parser = subparsers.add_parser(
     "bm25idf", help="Get BM25 IDF score for a given term")
