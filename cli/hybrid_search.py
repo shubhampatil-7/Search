@@ -38,7 +38,7 @@ class RRFScoreData(TypedDict):
 class RRFSearchCommandResult(TypedDict):
     original_query: str
     enhanced_query: str | None
-    enhance_method: Literal["spell"] | None
+    enhance_method: Literal["spell", "rewrite"] | None
     query: str
     k: int
     results: list[SearchResult]
@@ -239,7 +239,7 @@ def reciprocal_rank_fusion(
 def rrf_search_command(
     query: str,
     k: int = RRF_K,
-    enhance: Literal["spell"] | None = None,
+    enhance: Literal["spell"] | Literal["rewrite"] | None = None,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> RRFSearchCommandResult:
     movies = load_movies()
@@ -250,6 +250,8 @@ def rrf_search_command(
     if enhance:
         enhanced_query = enhance_query(query, method=enhance)
         query = enhanced_query
+
+    
 
     search_limit = limit
     results = searcher.rrf_search(query, k, search_limit)
