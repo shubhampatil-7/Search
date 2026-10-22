@@ -6,6 +6,8 @@ from hybrid_search import (
     weighted_search_command,
 )
 
+# from test_llm import client
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -36,6 +38,12 @@ def main() -> None:
     rrf_search_parser.add_argument("query", type=str, help="put the search query")
     rrf_search_parser.add_argument("-k", type=int, default=60, help="k value")
     rrf_search_parser.add_argument("--limit", type=int, default=5, help="limit to the results")
+    rrf_search_parser.add_argument(
+        "--enhance",
+        type=str,
+        choices=["spell"],
+        help="Query enhancement method",
+    )
     args = parser.parse_args()
 
     match args.command:
@@ -64,7 +72,12 @@ def main() -> None:
                 print()
 
         case "rrf-search":
-            result = rrf_search_command(args.query, args.k, args.limit)
+                         
+            result = rrf_search_command(args.query, args.k, args.enhance, args.limit)
+            if result["enhanced_query"]:
+                print(
+                    f"Enhanced query ({result['enhance_method']}): '{result['original_query']}' -> '{result['enhanced_query']}'\n"
+                )
 
             print(
                 f"Reciprocal Rank Fusion Results for '{result['query']}' (k={result['k']}):"
