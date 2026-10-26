@@ -44,6 +44,12 @@ def main() -> None:
         choices=["spell", "rewrite", "expand"],
         help="Query enhancement method",
     )
+    rrf_search_parser.add_argument(
+        "--rerank-method",
+        type=str,
+        choices=["individual"],
+        help="Re-ranking method",
+    )
     args = parser.parse_args()
 
     match args.command:
@@ -73,10 +79,15 @@ def main() -> None:
 
         case "rrf-search":
                          
-            result = rrf_search_command(args.query, args.k, args.enhance, args.limit)
+            result = rrf_search_command(args.query, args.k, args.enhance, args.rerank_method, args.limit)
             if result["enhanced_query"]:
                 print(
                     f"Enhanced query ({result['enhance_method']}): '{result['original_query']}' -> '{result['enhanced_query']}'\n"
+                )
+
+            if result["reranked"]:
+                print(
+                    f"Re-ranking top {len(result['results'])} results using {result['rerank_method']} method...\n"
                 )
 
             print(
@@ -85,6 +96,10 @@ def main() -> None:
 
             for i, res in enumerate(result["results"], 1):
                 print(f"{i}. {res['title']}")
+                if "individual_score" in res:
+                    print(f"   Re-rank Score: {res.get('individual_score', 0):.3f}/10")
+                if "batch_rank" in res:
+                    print(f"   Re-rank Rank: {res.get('batch_rank', 0)}")
                 print(f"   RRF Score: {res.get('score', 0):.3f}")
                 metadata = res.get("metadata", {})
                 ranks = []

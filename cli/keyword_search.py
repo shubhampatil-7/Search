@@ -99,7 +99,7 @@ class InvertedIndex:
         bm25_idf = self.get_bm25_idf(term)
         return bm25_tf * bm25_idf
 
-    def bm25_search(self, query, limit):
+    def bm25_search(self, query, limit:int):
         tokens = tokenize_text(query)
         doc_scores: dict[int, float] = {}
         for doc_id in self.docmap:

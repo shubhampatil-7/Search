@@ -1,6 +1,7 @@
 import os
 from typing import TypedDict, Literal
 from lib.query_enhancement import enhance_query
+from lib.reranking import RerankedSearchResult, rerank
 
 from keyword_search import InvertedIndex
 from search_utils import (
@@ -8,6 +9,7 @@ from search_utils import (
     DEFAULT_SEARCH_LIMIT,
     RRF_K,
     Movie,
+    SEARCH_MULTIPLIER,
     SearchResult,
     format_search_result,
     load_movies,
@@ -41,7 +43,9 @@ class RRFSearchCommandResult(TypedDict):
     enhance_method: Literal["spell", "rewrite"] | None
     query: str
     k: int
-    results: list[SearchResult]
+    rerank_method: Literal["individual", "batch", "cross_encoder"] | None
+    reranked: bool
+    results: list[SearchResult] | list[RerankedSearchResult]
 
 class HybridSearch:
     def __init__(self, documents: list[Movie]) -> None:
@@ -240,6 +244,7 @@ def rrf_search_command(
     query: str,
     k: int = RRF_K,
     enhance: Literal["spell"] | Literal["rewrite"] | None = None,
+    rerank_method: Literal["individual", "batch", "cross_encoder"] | None = None,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> RRFSearchCommandResult:
     movies = load_movies()
@@ -252,9 +257,13 @@ def rrf_search_command(
         query = enhanced_query
 
     
-
-    search_limit = limit
+    search_limit = limit * SEARCH_MULTIPLIER if rerank_method else limit
+    reranked = False
     results = searcher.rrf_search(query, k, search_limit)
+
+    if rerank_method:
+        results = rerank(query, results, method=rerank_method, limit=limit)
+        reranked = True
 
     return {
         "original_query": original_query,
@@ -262,5 +271,7 @@ def rrf_search_command(
         "enhance_method": enhance,
         "query": query,
         "k": k,
+        "rerank_method": rerank_method,
+        "reranked": reranked,
         "results": results,
     }
