@@ -2,6 +2,8 @@ import json
 import os
 from time import sleep
 from typing import Literal, NotRequired
+from sentence_transformers import CrossEncoder
+
 
 from dotenv import load_dotenv
 from openai import (
@@ -19,6 +21,7 @@ import re
 class RerankedSearchResult(SearchResult, total=False):
     individual_score: NotRequired[int]
     batch_rank: NotRequired[int]
+    crossencoder_score: NotRequired[float]
 
 
 load_dotenv()
@@ -32,6 +35,7 @@ client = OpenAI(
     max_retries=0,
 )
 model = "openrouter/free"
+cross_encoder = CrossEncoder("cross-encoder/ms-marco-TinyBERT-L2-v2")
 
 
 def llm_rerank_individual(
@@ -144,7 +148,26 @@ def llm_rerank_batch(
 
 
 
+def llm_rerank_crossencoder(
+    query: str, documents: list[SearchResult], limit: int = 5
+) -> list[RerankedSearchResult]:
+   
+    pairs: list[list[str]] = []
+    reranked_documents: list[RerankedSearchResult] = [
+        RerankedSearchResult(**doc) for doc in documents
+    ]
+    for doc in reranked_documents:
+        pairs.append([query, f"{doc.get('title', '')} - {doc.get('document', '')}"])
 
+    scores = cross_encoder.predict(pairs)
+
+    for doc, score in zip(reranked_documents, scores):
+        doc["crossencoder_score"] = float(score)
+
+    reranked_documents.sort(key=lambda x: float(x["crossencoder_score"]), reverse=True)
+    return reranked_documents[:limit]
+
+    
 def rerank(
     query: str,
     documents: list[SearchResult],
@@ -155,5 +178,7 @@ def rerank(
         return llm_rerank_individual(query, documents, limit)
     if method == "batch":
         return llm_rerank_batch(query, documents, limit)
+    if method == "cross_encoder":
+        return llm_rerank_crossencoder(query, documents, limit)
     else:
         return documents[:limit]
