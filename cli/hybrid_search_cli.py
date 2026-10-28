@@ -7,7 +7,7 @@ from hybrid_search import (
 )
 
 # from test_llm import client
-
+from lib.evaluation import LLM_Judge
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Hybrid Search CLI")
@@ -50,6 +50,9 @@ def main() -> None:
         choices=["individual", "batch", "cross_encoder"],
         help="Re-ranking method",
     )
+    rrf_search_parser.add_argument(
+        "--evaluate", action="store_true", help="Use LLM to evaluate result relevance"
+    )
     args = parser.parse_args()
 
     match args.command:
@@ -80,10 +83,13 @@ def main() -> None:
         case "rrf-search":
                          
             result = rrf_search_command(args.query, args.k, args.enhance, args.rerank_method, args.limit)
+            print("ORIGINAL QUERY:", args.query)
             if result["enhanced_query"]:
                 print(
                     f"Enhanced query ({result['enhance_method']}): '{result['original_query']}' -> '{result['enhanced_query']}'\n"
                 )
+
+            print(f"QUERY ENHACEMENT: '{result['original_query']}' -> '{result['enhanced_query']}'\n")
 
             if result["reranked"]:
                 print(
@@ -106,6 +112,8 @@ def main() -> None:
                     )    
                     
                 print(f"   RRF Score: {res.get('score', 0):.3f}")
+                               
+
                 metadata = res.get("metadata", {})
                 ranks = []
                 if metadata.get("bm25_rank"):
@@ -118,7 +126,13 @@ def main() -> None:
                 print()
 
     
-            
+            if args.evaluate:
+                print("LLM Evaluation (0-3 relevance scale):")
+
+                llm_scores = LLM_Judge(args.query, result["results"])
+
+                for i, (res, score) in enumerate(zip(result["results"], llm_scores), 1):
+                    print(f"{i}. {res['title']}: {score}/3")
         case _:
             parser.print_help()
 

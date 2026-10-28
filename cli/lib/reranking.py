@@ -164,7 +164,7 @@ def llm_rerank_crossencoder(
     for doc, score in zip(reranked_documents, scores):
         doc["crossencoder_score"] = float(score)
 
-    reranked_documents.sort(key=lambda x: float(x["crossencoder_score"]), reverse=True)
+    reranked_documents.sort(key=lambda x: float(x["crossencoder_score"]), reverse=True) # type: ignore
     return reranked_documents[:limit]
 
     

@@ -68,22 +68,22 @@ def main() -> None:
             idx = InvertedIndex()
             idx.load()
             args.term = tokenize_helper(args.term)
-            tf = idx.get_tf(args.doc_id, args.term)
+            tf = idx.get_tf(args.doc_id, args.term) # type: ignore
             print(f"Term frequency of '{args.term}' in document {args.doc_id}: {tf}")
         
         case "idf":
             idx = InvertedIndex()
             idx.load()
             args.term = tokenize_helper(args.term)
-            idf = idx.get_idf(args.term)
+            idf = idx.get_idf(args.term) # type: ignore
             print(f"Inverse document frequency of '{args.term}': {idf:.2f}")
             
         case "tfidf":
             idx = InvertedIndex()
             idx.load()
             args.term = tokenize_helper(args.term)
-            tf = idx.get_tf(args.doc_id, args.term)
-            idf = idx.get_idf(args.term)
+            tf = idx.get_tf(args.doc_id, args.term) # type: ignore
+            idf = idx.get_idf(args.term) # type: ignore
             tfidf = tf * idf
             print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tfidf:.2f}")
 
